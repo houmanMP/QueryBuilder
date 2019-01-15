@@ -14,7 +14,7 @@ const ConditionBuilder = ({
       }
       required
     >
-      {!parameter && <option>Select a condition</option>}
+      {!parameter && <option value={"undefined"}>Select a condition</option>}
       <option value={"companySize"}>Company Size</option>
     </select>
     {parameter && (
