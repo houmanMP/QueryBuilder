@@ -1,2 +1,0 @@
-# QueryBuilder
-Created with CodeSandbox
