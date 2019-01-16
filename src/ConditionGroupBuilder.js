@@ -7,13 +7,13 @@ import isUndefined from "lodash/isUndefined";
 import ConditionBuilder from "./ConditionBuilder";
 
 const Operators = {
-  add: "add",
+  and: "and",
   or: "or"
 };
 
 const OperatorDropdown = ({ handleChange, condition }) => (
   <select value={condition} onChange={handleChange} required>
-    <option value={Operators.add}>{Operators.add}</option>
+    <option value={Operators.and}>{Operators.and}</option>
     <option value={Operators.or}>{Operators.or}</option>
   </select>
 );
@@ -22,61 +22,84 @@ class ConditionGroupBuilder extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      groupOperator: null,
-      conditions: [],
-      conditionId: -1,
       groups: [],
-      groupId: -1
+      groupId: -1,
+      conditionId: -1
     };
   }
 
   componentDidMount() {
-    if (this.state.conditions.length === 0) {
-      this.createCondition();
+    if (this.state.groups.length === 0) {
+      this.createGroup();
     }
   }
 
-  changeGroupOperator = groupOperator => {
-    if (groupOperator !== this.state.groupOperator) {
-      this.setState({
-        groupOperator
+  changeGroupOperator = (innerOperator, groupId) => {
+    const { operator } = this.getGroup(groupId);
+    if (innerOperator !== operator) {
+      this.updateGroup(groupId, {
+        operator: innerOperator
       });
     }
   };
 
-  addCondition = condition => () => {
-    this.createCondition();
-    this.changeGroupOperator(condition);
+  addCondition = (operator, groupId) => () => {
+    this.createCondition({}, groupId, operator);
   };
 
-  removeCondition = conditionId => () => {
-    const conditions = this.state.conditions.filter(
+  deleteGroup = groupId => {
+    this.setState({
+      groups: this.state.groups.filter(({ id }) => id !== groupId)
+    });
+  };
+
+  removeCondition = (conditionId, groupId) => () => {
+    const group = this.getGroup(groupId);
+
+    const conditions = group.conditions.filter(
       condition => condition.id !== conditionId
     );
 
-    this.setState(
-      {
-        conditions
-      },
-      () => {
-        if (this.state.conditions.length === 0) {
-          this.createCondition();
-        }
-      }
-    );
+    if (conditions.length === 0) {
+      this.deleteGroup(groupId);
 
-    if (this.state.conditions.length < 3 && this.state.groupOperator) {
-      this.setState({
-        groupOperator: null
-      });
+      if (this.state.groups.length === 1) {
+        this.createGroup();
+      }
+    } else {
+      const changes = { conditions };
+      if (conditions.length < 2 && group.operator) {
+        changes.operator = null;
+      }
+      this.updateGroup(groupId, changes);
     }
   };
 
-  addNewConditionButtons = () => {
-    const lastConditionProperties = get(
-      last(this.state.conditions),
-      "properties"
+  createGroup = outerOperator => {
+    const groupId = this.state.groupId + 1;
+
+    this.setState(
+      {
+        groupId,
+        groups: [
+          ...this.state.groups,
+          {
+            id: groupId,
+            outerOperator,
+            conditions: []
+          }
+        ]
+      },
+      () => {
+        this.createCondition({}, groupId);
+      }
     );
+  };
+
+  addNewConditionButtons = groupId => {
+    const { operator, conditions } = this.getGroup(groupId);
+
+    const lastConditionProperties = get(last(conditions), "properties");
 
     if (
       isUndefined(lastConditionProperties) ||
@@ -87,20 +110,18 @@ class ConditionGroupBuilder extends Component {
       return null;
     }
 
-    const canAddAnd =
-      !this.state.groupOperator || this.state.groupOperator === Operators.add;
-    const canAddOr =
-      !this.state.groupOperator || this.state.groupOperator === Operators.or;
+    const canAddAnd = !operator || operator === Operators.and;
+    const canAddOr = !operator || operator === Operators.or;
 
     return (
       <Fragment>
         {canAddAnd && (
-          <button onClick={this.addCondition(Operators.add)}>
-            +{Operators.add}
+          <button onClick={this.addCondition(Operators.and, groupId)}>
+            +{Operators.and}
           </button>
         )}
         {canAddOr && (
-          <button onClick={this.addCondition(Operators.or)}>
+          <button onClick={this.addCondition(Operators.or, groupId)}>
             +{Operators.or}
           </button>
         )}
@@ -108,89 +129,141 @@ class ConditionGroupBuilder extends Component {
     );
   };
 
-  conditionsList = () =>
-    this.state.conditions.map(condition => (
+  getGroup = groupId => this.state.groups.find(({ id }) => id === groupId);
+
+  conditionsList = groupId => {
+    const groupConditions = this.getGroup(groupId).conditions;
+    return groupConditions.map(condition => (
       <div key={condition.id} style={{ display: "flex" }}>
         <ConditionBuilder
           properties={condition.properties}
-          handleChange={this.handleConditionChange(condition.id)}
+          handleChange={this.handleConditionChange(condition.id, groupId)}
         />
-        {this.state.conditions.length === 1 ? null : (
-          <button onClick={this.removeCondition(condition.id)}>X</button>
+        {groupConditions.length === 1 &&
+        this.state.groups.length === 1 ? null : (
+          <button onClick={this.removeCondition(condition.id, groupId)}>
+            X
+          </button>
         )}
       </div>
     ));
+  };
 
-  createCondition = properties => {
+  createCondition = (properties, groupId = 0, operator) => {
     const conditionId = this.state.conditionId + 1;
+    const conditions = [
+      ...this.getGroup(groupId).conditions,
+      {
+        id: conditionId,
+        properties
+      }
+    ];
 
-    const condition = {
-      id: conditionId,
-      properties
-    };
+    const changes = { conditions };
+
+    if (operator) {
+      changes.operator = operator;
+    }
+
+    this.setState(
+      {
+        conditionId
+      },
+      () => {
+        this.updateGroup(groupId, changes);
+      }
+    );
+  };
+
+  updateGroup = (id, changes) => {
+    const groups = this.state.groups.map(group => {
+      if (group.id === id) {
+        return {
+          ...group,
+          ...changes
+        };
+      }
+      return group;
+    });
 
     this.setState({
-      conditions: [...this.state.conditions, condition],
-      conditionId
+      groups
     });
   };
 
-  handleConditionChange = id => change => {
-    if (id >= 0) {
-      const conditions = this.state.conditions.map(condition => {
-        return condition.id !== id
-          ? condition
-          : {
-              id,
-              properties: {
-                ...condition.properties,
-                ...change
-              }
-            };
-      });
-      this.setState({
-        conditions
-      });
-    } else {
-      this.createCondition(change);
-    }
+  handleConditionChange = (conditionId, groupId) => change => {
+    const conditions = this.getGroup(groupId).conditions.map(condition => {
+      return condition.id !== conditionId
+        ? condition
+        : {
+            id: conditionId,
+            properties: {
+              ...condition.properties,
+              ...change
+            }
+          };
+    });
+    this.updateGroup(groupId, { conditions });
   };
 
-  operatorDropdown = () =>
-    this.state.groupOperator ? (
+  operatorDropdown = groupId => {
+    const { operator } = this.getGroup(groupId);
+    return operator ? (
       <OperatorDropdown
-        condition={this.state.groupOperator}
+        condition={this.state.innerOperator}
         handleChange={({ target: { value } }) => {
-          this.changeGroupOperator(value);
+          this.changeGroupOperator(value, groupId);
         }}
       />
     ) : null;
+  };
 
-  conditionGroupContainer = () => (
-    <div style={{ display: "flex", border: "1px dashed black" }}>
+  conditionGroupContainer = groupId => (
+    <div
+      key={groupId}
+      style={{
+        display: "flex",
+        border: "1px solid black",
+        borderRadius: "5px",
+        padding: 5
+      }}
+    >
       <div
         style={{
           width: "4rem",
           minWidth: "4rem"
         }}
       >
-        {this.operatorDropdown()}
+        {this.operatorDropdown(groupId)}
       </div>
       <div>
-        <div>{this.conditionsList()}</div>
-        {this.addNewConditionButtons()}
+        <div>{this.conditionsList(groupId)}</div>
+        {this.addNewConditionButtons(groupId)}
       </div>
     </div>
   );
 
-  addNewConditionGroup = () => {};
-
-  addConditionGroupButton = () => <button>+</button>;
+  addConditionGroupButton = () => (
+    <div>
+      <button onClick={() => this.createGroup(Operators.and)}>
+        +{Operators.and}
+      </button>
+      <button onClick={() => this.createGroup(Operators.or)}>
+        +{Operators.or}
+      </button>
+    </div>
+  );
 
   render() {
+    const groups = this.state.groups;
     return (
       <div>
-        {this.conditionGroupContainer()}
+        {groups.map(({ id, outerOperator }, index) => (
+          <div>
+            {index >= 1 && outerOperator}
+            {this.conditionGroupContainer(id)}
+          </div>
+        ))}
         {this.addConditionGroupButton()}
       </div>
     );
