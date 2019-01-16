@@ -1,5 +1,4 @@
 import React, { Component, Fragment } from "react";
-import ReactDOM from "react-dom";
 import last from "lodash/last";
 import get from "lodash/get";
 import isUndefined from "lodash/isUndefined";
@@ -96,17 +95,20 @@ class ConditionGroupBuilder extends Component {
     );
   };
 
-  addNewConditionButtons = groupId => {
-    const { operator, conditions } = this.getGroup(groupId);
-
+  lastConditionIsUndefined = conditions => {
     const lastConditionProperties = get(last(conditions), "properties");
-
-    if (
+    return (
       isUndefined(lastConditionProperties) ||
       isUndefined(lastConditionProperties.parameter) ||
       isUndefined(lastConditionProperties.operator) ||
       isUndefined(lastConditionProperties.value)
-    ) {
+    );
+  };
+
+  addNewConditionButtons = groupId => {
+    const { operator, conditions } = this.getGroup(groupId);
+
+    if (this.lastConditionIsUndefined(conditions)) {
       return null;
     }
 
@@ -219,52 +221,68 @@ class ConditionGroupBuilder extends Component {
   };
 
   conditionGroupContainer = groupId => (
-    <div
-      key={groupId}
-      style={{
-        display: "flex",
-        border: "1px solid black",
-        borderRadius: "5px",
-        padding: 5
-      }}
-    >
+    <div>
+      {this.changeOuterOperatorButtons(groupId)}
       <div
+        key={groupId}
         style={{
-          width: "4rem",
-          minWidth: "4rem"
+          display: "flex",
+          border: "1px solid black",
+          borderRadius: "5px",
+          padding: 5
         }}
       >
-        {this.operatorDropdown(groupId)}
-      </div>
-      <div>
-        <div>{this.conditionsList(groupId)}</div>
-        {this.addNewConditionButtons(groupId)}
+        <div
+          style={{
+            width: "4rem",
+            minWidth: "4rem"
+          }}
+        >
+          {this.operatorDropdown(groupId)}
+        </div>
+        <div>
+          <div>{this.conditionsList(groupId)}</div>
+          {this.addNewConditionButtons(groupId)}
+        </div>
       </div>
     </div>
   );
 
-  addConditionGroupButton = () => (
-    <div>
-      <button onClick={() => this.createGroup(Operators.and)}>
-        +{Operators.and}
-      </button>
-      <button onClick={() => this.createGroup(Operators.or)}>
-        +{Operators.or}
-      </button>
-    </div>
-  );
+  changeOuterOperatorButtons = groupId => {
+    const outerOperator = this.getGroup(groupId).outerOperator;
+    console.log(outerOperator);
+    return !outerOperator ? null : (
+      <div>
+        {Object.values(Operators).map(operator => {
+          const handleClick = () => {
+            this.updateGroup(groupId, { outerOperator: operator });
+          };
+
+          return outerOperator === operator ? (
+            <span>+{operator}</span>
+          ) : (
+            <button onClick={handleClick}>+{operator}</button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  addNewGroupButtons = () =>
+    Object.values(Operators).map(operator => (
+      <button onClick={() => this.createGroup(operator)}>+{operator}</button>
+    ));
 
   render() {
     const groups = this.state.groups;
     return (
       <div>
         {groups.map(({ id, outerOperator }, index) => (
-          <div>
-            {index >= 1 && outerOperator}
-            {this.conditionGroupContainer(id)}
-          </div>
+          <div key={id}>{this.conditionGroupContainer(id)}</div>
         ))}
-        {this.addConditionGroupButton()}
+        {this.lastConditionIsUndefined((last(groups) || {}).conditions)
+          ? null
+          : this.addNewGroupButtons()}
       </div>
     );
   }
