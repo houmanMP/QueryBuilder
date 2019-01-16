@@ -250,7 +250,7 @@ class ConditionGroupBuilder extends Component {
 
   changeOuterOperatorButtons = groupId => {
     const outerOperator = this.getGroup(groupId).outerOperator;
-    console.log(outerOperator);
+
     return !outerOperator ? null : (
       <div>
         {Object.values(Operators).map(operator => {
