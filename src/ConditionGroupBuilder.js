@@ -202,30 +202,58 @@ class ConditionGroupBuilder extends Component {
   };
 
   conditionGroupContainer = groupId => (
-    <div>
+    <div key={groupId}>
       {this.changeOuterOperatorButtons(groupId)}
-      <div
-        key={groupId}
-        style={{
-          display: "flex",
-          border: "1px solid #dcdcdc",
-          // borderRadius: "5px",
-          padding: 5
-        }}
-      >
-        <div>
+      <div>
+        <div
+          style={{
+            display: "flex",
+            borderStyle: "solid",
+            borderColor: "#dcdcdc",
+            borderWidth: "1px 1px 0 1px",
+            margin: 0,
+            paddingTop: 5,
+            width: "100%"
+          }}
+        >
           <div
             style={{
-              width: "4.5rem",
-              minWidth: "4.5rem"
+              width: "15%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center"
             }}
           >
-            {this.operatorDropdown(groupId)}
+            <div>{this.operatorDropdown(groupId)}</div>
+          </div>
+          <div>
+            <div>{this.conditionsList(groupId)}</div>
           </div>
         </div>
-        <div>
-          <div>{this.conditionsList(groupId)}</div>
-          {this.addNewConditionButtons(groupId)}
+        <div
+          style={{
+            display: "flex",
+            borderStyle: "solid",
+            borderColor: "#dcdcdc",
+            borderWidth: "0 1px 1px 1px",
+            paddingBottom: 5,
+            margin: 0,
+            width: "100%"
+          }}
+        >
+          <div
+            style={{
+              width: "15%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <div />
+          </div>
+          <div>
+            <div>{this.addNewConditionButtons(groupId)}</div>
+          </div>
         </div>
       </div>
     </div>

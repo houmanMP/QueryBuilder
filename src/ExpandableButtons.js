@@ -15,8 +15,16 @@ export default class ExpandableButtons extends Component {
   };
 
   static defaultProps = {
-    open: <span>+</span>,
-    close: <span>x</span>,
+    open: (
+      <span>
+        <strong>+</strong>
+      </span>
+    ),
+    close: (
+      <span>
+        <strong>X</strong>
+      </span>
+    ),
     items: []
   };
 

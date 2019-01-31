@@ -9,8 +9,8 @@ const linkStyle = {
 
 const Link = () => (
   <div style={{ ...linkStyle, height: "1rem" }}>
-    <div style={{ width: "50%", borderRight: "1px solid #dcdcdc" }} />
-    <div style={{ width: "50%", borderLeft: "1px solid #dcdcdc" }} />
+    <div style={{ width: "7.5%", borderRight: "1px solid #dcdcdc" }} />
+    <div style={{ width: "7.5%", borderLeft: "1px solid #dcdcdc" }} />
     <div />
   </div>
 );
@@ -22,7 +22,7 @@ function Connector({ children }) {
       <div style={linkStyle}>
         <div
           style={{
-            width: "100%",
+            width: "15%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center"
@@ -39,7 +39,6 @@ function Connector({ children }) {
 function Section({ children }) {
   const style = {
     border: "1px solid #dcdcdc",
-    // borderRadius: "5px",
     padding: 0,
     margin: 0,
     width: "100%",
