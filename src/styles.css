@@ -2,3 +2,13 @@
   font-family: sans-serif;
   text-align: center;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+table,
+th,
+td {
+  border-collapse: collapse;
+}

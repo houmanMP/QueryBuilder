@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Fragment } from "react";
 
 const ConditionBuilder = ({
   handleChange,
@@ -7,6 +7,7 @@ const ConditionBuilder = ({
   <div>
     <select
       value={parameter}
+      style={{ fontWeight: parameter ? "normal" : "bold" }}
       onChange={({ target: { value } }) =>
         handleChange({
           parameter: value
@@ -15,10 +16,12 @@ const ConditionBuilder = ({
       required
     >
       {!parameter && <option value={"undefined"}>Select a condition</option>}
-      <option value={"companySize"}>Company Size</option>
+      <option value={"size"}>Company Size</option>
+      <option value={"region"}>Region</option>
     </select>
     {parameter && (
       <select
+        style={{ fontWeight: operator ? "normal" : "bold" }}
         value={operator}
         onChange={({ target: { value } }) =>
           handleChange({
@@ -35,6 +38,7 @@ const ConditionBuilder = ({
     {parameter && (
       <select
         value={value}
+        style={{ fontWeight: value ? "normal" : "bold" }}
         onChange={({ target: { value } }) =>
           handleChange({
             value
@@ -43,9 +47,19 @@ const ConditionBuilder = ({
         required
       >
         {!value && <option>value</option>}
-        <option value={"small"}>small</option>
-        <option value={"medium"}>medium</option>
-        <option value={"large"}>large</option>
+        {parameter === "size" ? (
+          <Fragment>
+            <option value={"small"}>small</option>
+            <option value={"medium"}>medium</option>
+            <option value={"large"}>large</option>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <option value={"Asia"}>Asia</option>
+            <option value={"Europe"}>Europe</option>
+            <option value={"North America"}>North America</option>
+          </Fragment>
+        )}
       </select>
     )}
   </div>

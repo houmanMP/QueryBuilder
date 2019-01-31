@@ -1,11 +1,13 @@
 {
-  "name": "querybuilder-without-grouping",
+  "name": "querybuilder-with-preview-simplified-addition-frozen",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
   "main": "src/index.js",
   "dependencies": {
+    "faker": "4.1.0",
     "lodash": "4.17.11",
+    "prop-types": "15.6.2",
     "react": "16.5.2",
     "react-dom": "16.5.2",
     "react-scripts": "2.0.3",

@@ -1,21 +1,24 @@
 import React, { Component, Fragment } from "react";
 import last from "lodash/last";
-import get from "lodash/get";
-import isUndefined from "lodash/isUndefined";
 
+import {
+  conditionIsUndefined,
+  Operators,
+  combineConditionGroups
+} from "./utils";
 import ConditionBuilder from "./ConditionBuilder";
+import Preview from "./Preview";
+import ExpandableButtons from "./ExpandableButtons";
+import Connection from "./Connection";
 
-const Operators = {
-  and: "and",
-  or: "or"
+const OperatorDropdown = ({ handleChange, operator }) => {
+  return (
+    <select value={operator} onChange={handleChange} required>
+      <option value={Operators.and}>All of</option>
+      <option value={Operators.or}>Any of</option>
+    </select>
+  );
 };
-
-const OperatorDropdown = ({ handleChange, condition }) => (
-  <select value={condition} onChange={handleChange} required>
-    <option value={Operators.and}>{Operators.and}</option>
-    <option value={Operators.or}>{Operators.or}</option>
-  </select>
-);
 
 class ConditionGroupBuilder extends Component {
   constructor(props) {
@@ -33,22 +36,26 @@ class ConditionGroupBuilder extends Component {
     }
   }
 
-  changeGroupOperator = (innerOperator, groupId) => {
-    const { operator } = this.getGroup(groupId);
-    if (innerOperator !== operator) {
+  changeGroupOperator = (operator, groupId) => {
+    const { operator: currentOperator } = this.getGroup(groupId);
+    if (operator !== currentOperator) {
       this.updateGroup(groupId, {
-        operator: innerOperator
+        operator
       });
     }
   };
 
-  addCondition = (operator, groupId) => () => {
-    this.createCondition({}, groupId, operator);
+  addCondition = groupId => () => {
+    this.createCondition({}, groupId);
   };
 
   deleteGroup = groupId => {
+    const groups = this.state.groups.filter(({ id }) => id !== groupId);
+    if (groups[0]) {
+      groups[0].outerOperator = null;
+    }
     this.setState({
-      groups: this.state.groups.filter(({ id }) => id !== groupId)
+      groups
     });
   };
 
@@ -95,41 +102,13 @@ class ConditionGroupBuilder extends Component {
     );
   };
 
-  lastConditionIsUndefined = conditions => {
-    const lastConditionProperties = get(last(conditions), "properties");
-    return (
-      isUndefined(lastConditionProperties) ||
-      isUndefined(lastConditionProperties.parameter) ||
-      isUndefined(lastConditionProperties.operator) ||
-      isUndefined(lastConditionProperties.value)
+  lastConditionIsUndefined = conditions =>
+    conditionIsUndefined(last(conditions));
+
+  addNewConditionButtons = groupId =>
+    this.lastConditionIsUndefined(this.getGroup(groupId).conditions) ? null : (
+      <button onClick={this.addCondition(groupId)}>+</button>
     );
-  };
-
-  addNewConditionButtons = groupId => {
-    const { operator, conditions } = this.getGroup(groupId);
-
-    if (this.lastConditionIsUndefined(conditions)) {
-      return null;
-    }
-
-    const canAddAnd = !operator || operator === Operators.and;
-    const canAddOr = !operator || operator === Operators.or;
-
-    return (
-      <Fragment>
-        {canAddAnd && (
-          <button onClick={this.addCondition(Operators.and, groupId)}>
-            +{Operators.and}
-          </button>
-        )}
-        {canAddOr && (
-          <button onClick={this.addCondition(Operators.or, groupId)}>
-            +{Operators.or}
-          </button>
-        )}
-      </Fragment>
-    );
-  };
 
   getGroup = groupId => this.state.groups.find(({ id }) => id === groupId);
 
@@ -151,10 +130,12 @@ class ConditionGroupBuilder extends Component {
     ));
   };
 
-  createCondition = (properties, groupId = 0, operator) => {
+  createCondition = (properties, groupId = 0) => {
     const conditionId = this.state.conditionId + 1;
+    const group = this.getGroup(groupId);
+
     const conditions = [
-      ...this.getGroup(groupId).conditions,
+      ...group.conditions,
       {
         id: conditionId,
         properties
@@ -163,8 +144,8 @@ class ConditionGroupBuilder extends Component {
 
     const changes = { conditions };
 
-    if (operator) {
-      changes.operator = operator;
+    if (!group.operator && conditions.length > 1) {
+      changes.operator = Operators.and;
     }
 
     this.setState(
@@ -212,7 +193,7 @@ class ConditionGroupBuilder extends Component {
     const { operator } = this.getGroup(groupId);
     return operator ? (
       <OperatorDropdown
-        condition={this.state.innerOperator}
+        operator={operator}
         handleChange={({ target: { value } }) => {
           this.changeGroupOperator(value, groupId);
         }}
@@ -227,18 +208,20 @@ class ConditionGroupBuilder extends Component {
         key={groupId}
         style={{
           display: "flex",
-          border: "1px solid black",
-          borderRadius: "5px",
+          border: "1px solid #dcdcdc",
+          // borderRadius: "5px",
           padding: 5
         }}
       >
-        <div
-          style={{
-            width: "4rem",
-            minWidth: "4rem"
-          }}
-        >
-          {this.operatorDropdown(groupId)}
+        <div>
+          <div
+            style={{
+              width: "4.5rem",
+              minWidth: "4.5rem"
+            }}
+          >
+            {this.operatorDropdown(groupId)}
+          </div>
         </div>
         <div>
           <div>{this.conditionsList(groupId)}</div>
@@ -252,37 +235,52 @@ class ConditionGroupBuilder extends Component {
     const outerOperator = this.getGroup(groupId).outerOperator;
 
     return !outerOperator ? null : (
-      <div>
-        {Object.values(Operators).map(operator => {
-          const handleClick = () => {
-            this.updateGroup(groupId, { outerOperator: operator });
-          };
-
-          return outerOperator === operator ? (
-            <span>+{operator}</span>
-          ) : (
-            <button onClick={handleClick}>+{operator}</button>
-          );
-        })}
-      </div>
+      <Connection>
+        <select
+          value={outerOperator}
+          onChange={({ target: { value } }) => {
+            this.updateGroup(groupId, { outerOperator: value });
+          }}
+          required={true}
+        >
+          {Object.values(Operators).map(operator => (
+            <option key={operator} value={operator}>
+              {operator}
+            </option>
+          ))}
+        </select>
+      </Connection>
     );
   };
 
-  addNewGroupButtons = () =>
-    Object.values(Operators).map(operator => (
-      <button onClick={() => this.createGroup(operator)}>+{operator}</button>
-    ));
+  addNewGroupButtons = () => (
+    <Connection>
+      <div style={{ width: "4.5rem" }}>
+        <ExpandableButtons
+          items={Object.values(Operators).map(operator => ({
+            key: operator,
+            handleClick: () => this.createGroup(operator),
+            component: () => <span>+{operator}</span>
+          }))}
+        />
+      </div>
+    </Connection>
+  );
 
   render() {
     const groups = this.state.groups;
+
     return (
       <div>
+        <h2>Query Builder</h2>
         {groups.map(({ id, outerOperator }, index) => (
           <div key={id}>{this.conditionGroupContainer(id)}</div>
         ))}
         {this.lastConditionIsUndefined((last(groups) || {}).conditions)
           ? null
           : this.addNewGroupButtons()}
+        <h2>Preview</h2>
+        <Preview combinedGroups={combineConditionGroups(groups)} />
       </div>
     );
   }
